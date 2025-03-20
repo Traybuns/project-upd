@@ -52,15 +52,10 @@ jobs:
             echo "ECS Cluster already exists."
           fi
 
-      - name: Register Initial Task Definition (if not exists)
+      - name: Register Task Definition (overwrite existing)
         run: |
-          TASK_EXISTS=$(aws ecs list-task-definitions --family-prefix ${{ env.ECS_TASK_DEFINITION }} --query "taskDefinitionArns" --output text)
-          if [ -z "$TASK_EXISTS" ]; then
-            echo "Registering initial task definition..."
-            aws ecs register-task-definition --cli-input-json file://task.json
-          else
-            echo "Task definition already exists."
-          fi
+          echo "Registering task definition from task.json..."
+          aws ecs register-task-definition --cli-input-json file://task.json
 
       - name: Ensure ECS Service Exists
         run: |
