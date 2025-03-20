@@ -42,10 +42,38 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
+      - name: Create ECS Cluster (if not exists)
+        run: |
+          CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters ${{ env.ECS_CLUSTER }} --query "clusters[*].clusterName" --output text || echo "not found")
+          if [ "$CLUSTER_EXISTS" != "${{ env.ECS_CLUSTER }}" ]; then
+            echo "Creating ECS Cluster..."
+            aws ecs create-cluster --cluster-name ${{ env.ECS_CLUSTER }}
+          else
+            echo "ECS Cluster already exists."
+          fi
+
+      - name: Register Task Definition (overwrite existing)
+        run: |
+          echo "Registering task definition from task.json..."
+          aws ecs register-task-definition --cli-input-json file://task.json
+
+      - name: Ensure ECS Service Exists
+        run: |
+          SERVICE_EXISTS=$(aws ecs describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.ECS_SERVICE }} --query "services[0].status" --output text 2>/dev/null || echo "MISSING")
+          if [ "$SERVICE_EXISTS" == "MISSING" ]; then
+            echo "Creating ECS Service..."
+            aws ecs create-service --cluster ${{ env.ECS_CLUSTER }} --service-name ${{ env.ECS_SERVICE }} \
+              --task-definition ${{ env.ECS_TASK_DEFINITION }} --desired-count 1 --launch-type FARGATE \
+              --network-configuration "awsvpcConfiguration={subnets=[subnet-063539757770adda6],securityGroups=[sg-01666ea95d0960a69],assignPublicIp=ENABLED}"
+          else
+            echo "ECS Service already exists."
+          fi
+
       - name: Download ECS task definition
         run: |
           aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} \
-          --region ${{ env.AWS_REGION }} --query taskDefinition > task-definition.json
+          --query 'taskDefinition | {family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn, taskRoleArn: .taskRoleArn, containerDefinitions: .containerDefinitions}' \
+          > task-definition.json
 
       - name: Update ECS task definition with new image
         id: task-def
