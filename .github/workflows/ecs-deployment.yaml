@@ -69,11 +69,11 @@ jobs:
             echo "ECS Service already exists."
           fi
 
-      - name: Download ECS task definition
-        run: |
-          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} \
-          --query 'taskDefinition | {family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn, taskRoleArn: .taskRoleArn, containerDefinitions: .containerDefinitions}' \
-          > task-definition.json
+      # - name: Download ECS task definition
+      #   run: |
+      #     aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+      #     --query 'taskDefinition | {family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn, taskRoleArn: .taskRoleArn, containerDefinitions: .containerDefinitions}' \
+      #     > task-definition.json
 
       - name: Update ECS task definition with new image
         id: task-def
