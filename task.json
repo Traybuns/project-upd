@@ -20,12 +20,6 @@
                     "value": "production"
                 }
             ],
-            "secrets": [
-                {
-                    "name": "API_KEY",
-                    "valueFrom": "arn:aws:ssm:eu-north-1:976193258691:parameter/demo/api-key"
-                }
-            ],
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
