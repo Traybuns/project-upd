@@ -1,0 +1,39 @@
+{
+    "family": "project-1-task-definition",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "256",
+    "memory": "512",
+    "containerDefinitions": [
+        {
+            "name": "aws-project-1",
+            "image": "976193258691.dkr.ecr.eu-north-1.amazonaws.com/aws-project-1:latest",
+            "portMappings": [
+                {
+                    "containerPort": 5000,
+                    "protocol": "tcp"
+                }
+            ],
+            "environment": [
+                {
+                    "name": "ENVIRONMENT",
+                    "value": "production"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "API_KEY",
+                    "valueFrom": "arn:aws:ssm:eu-north-1:976193258691:parameter/demo/api-key"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/demo-backend",
+                    "awslogs-region": "eu-north-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ]
+}
