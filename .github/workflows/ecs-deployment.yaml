@@ -1,10 +1,8 @@
 name: Deploy to AWS ECS
-
 on:
   push:
     branches:
       - main
-
 env:
   AWS_REGION: eu-north-1
   ECR_REPOSITORY: aws-project-1
@@ -12,7 +10,6 @@ env:
   ECS_SERVICE: project-1-ecs-service
   ECS_TASK_DEFINITION: project-1-task-definition
   CONTAINER_NAME: aws-project-1
-
 jobs:
   deploy:
     name: Deploy to AWS
@@ -20,18 +17,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
@@ -41,7 +35,6 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
-
       - name: Create ECS Cluster (if not exists)
         run: |
           CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters ${{ env.ECS_CLUSTER }} --query "clusters[*].clusterName" --output text || echo "not found")
@@ -51,12 +44,42 @@ jobs:
           else
             echo "ECS Cluster already exists."
           fi
-
+      - name: Create ECS Task Execution Role (if not exists)
+        run: |
+          # Check if role exists
+          ROLE_EXISTS=$(aws iam get-role --role-name ecsTaskExecutionRole 2>/dev/null && echo "exists" || echo "missing")
+          
+          if [ "$ROLE_EXISTS" = "missing" ]; then
+            echo "Creating ECS Task Execution Role..."
+            
+            # Create trust policy document
+            cat > trust-policy.json << 'EOF'
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": "ecs-tasks.amazonaws.com"
+                  },
+                  "Action": "sts:AssumeRole"
+                }
+              ]
+            }
+            EOF
+            
+            # Create the role
+            aws iam create-role --role-name ecsTaskExecutionRole --assume-role-policy-document file://trust-policy.json
+            
+            # Attach the necessary policies
+            aws iam attach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+          else
+            echo "ECS Task Execution Role already exists."
+          fi
       - name: Register Task Definition (overwrite existing)
         run: |
           echo "Registering task definition from task.json..."
           aws ecs register-task-definition --cli-input-json file://task.json
-
       - name: Ensure ECS Service Exists
         run: |
           SERVICE_EXISTS=$(aws ecs describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.ECS_SERVICE }} --query "services[0].status" --output text 2>/dev/null || echo "MISSING")
@@ -68,12 +91,10 @@ jobs:
           else
             echo "ECS Service already exists."
           fi
-
       - name: Download ECS task definition
         run: |
           aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} \
           --query taskDefinition > task-definition.json
-
       - name: Update ECS task definition with new image
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -81,7 +102,6 @@ jobs:
           task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ env.image }}
-
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:

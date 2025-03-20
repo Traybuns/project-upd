@@ -4,30 +4,31 @@
     "requiresCompatibilities": ["FARGATE"],
     "cpu": "256",
     "memory": "512",
+    "executionRoleArn": "arn:aws:iam::976193258691:role/ecsTaskExecutionRole",
     "containerDefinitions": [
-        {
-            "name": "aws-project-1",
-            "image": "976193258691.dkr.ecr.eu-north-1.amazonaws.com/aws-project-1:latest",
-            "portMappings": [
-                {
-                    "containerPort": 5000,
-                    "protocol": "tcp"
-                }
-            ],
-            "environment": [
-                {
-                    "name": "ENVIRONMENT",
-                    "value": "production"
-                }
-            ],
-            "logConfiguration": {
-                "logDriver": "awslogs",
-                "options": {
-                    "awslogs-group": "/ecs/demo-backend",
-                    "awslogs-region": "eu-north-1",
-                    "awslogs-stream-prefix": "ecs"
-                }
-            }
+      {
+        "name": "aws-project-1",
+        "image": "976193258691.dkr.ecr.eu-north-1.amazonaws.com/aws-project-1:latest",
+        "portMappings": [
+          {
+            "containerPort": 5000,
+            "protocol": "tcp"
+          }
+        ],
+        "environment": [
+          {
+            "name": "ENVIRONMENT",
+            "value": "production"
+          }
+        ],
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/demo-backend",
+            "awslogs-region": "eu-north-1",
+            "awslogs-stream-prefix": "ecs"
+          }
         }
+      }
     ]
-}
+  }
